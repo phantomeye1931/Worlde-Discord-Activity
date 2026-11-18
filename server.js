@@ -3,7 +3,8 @@ import express from 'express';
 import { ANSWERS } from './src/words.js';
 import { initBotBridge, reportGameFinished, requestStreak } from './src/botBridge.js';
 import { initGameBridge } from './src/gameBridge.js';
-import { loadToday } from './src/playerStore.js';
+import { loadToday, setWordleNumber } from './src/playerStore.js';
+import { renderResultsImage, renderPlayerImage } from './src/renderResultImage.js';
 
 const app = express();
 app.use(express.json());
@@ -59,6 +60,9 @@ app.get('/api/word', async (req, res) => {
     const response = await fetch(`https://www.nytimes.com/svc/wordle/v2/${date}.json`);
     if (!response.ok) throw new Error(`NYT responded with ${response.status}`);
     const data = await response.json();
+    if (typeof data.days_since_launch === 'number') {
+      void setWordleNumber(date, data.days_since_launch);
+    }
     res.send({ word: data.solution.toUpperCase() });
   } catch (err) {
     console.error('Failed to fetch NYT Wordle word, falling back to random', err);
@@ -84,6 +88,46 @@ app.post('/api/game-finished', async (req, res) => {
   const { guesses, finished, rows } = req.body;
   reportGameFinished(discordId, guesses, finished, rows);
   res.send({ ok: true });
+});
+
+// Bot-only: renders a shareable results image (see preview.png/preview2.png) for a given day
+app.get('/api/results-image', async (req, res) => {
+  if (bearerToken(req) !== process.env.WORDLE_WS_TOKEN) {
+    return res.status(401).send({ error: 'Invalid or missing token' });
+  }
+
+  const date = typeof req.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
+    ? req.query.date
+    : new Date().toISOString().slice(0, 10);
+
+  try {
+    const png = await renderResultsImage(date);
+    res.set('Content-Type', 'image/png');
+    res.send(png);
+  } catch (err) {
+    console.error('Failed to render results image', err);
+    res.status(500).send({ error: 'Failed to render image' });
+  }
+});
+
+// Bot-only: renders a single player's results image for today only
+app.get('/api/player-image', async (req, res) => {
+  if (bearerToken(req) !== process.env.WORDLE_WS_TOKEN) {
+    return res.status(401).send({ error: 'Invalid or missing token' });
+  }
+
+  const discordId = typeof req.query.discordId === 'string' ? req.query.discordId : null;
+  if (!discordId) return res.status(400).send({ error: 'Missing discordId' });
+
+  try {
+    const png = await renderPlayerImage(discordId);
+    if (!png) return res.status(404).send({ error: 'No results for that player today' });
+    res.set('Content-Type', 'image/png');
+    res.send(png);
+  } catch (err) {
+    console.error('Failed to render player image', err);
+    res.status(500).send({ error: 'Failed to render image' });
+  }
 });
 
 // In case the process restarted mid-day, pick up wherever today's save file left off

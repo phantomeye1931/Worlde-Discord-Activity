@@ -81,3 +81,45 @@ export function getAllPlayers() {
   rollOverIfNewDay();
   return players;
 }
+
+// For a past date this reads straight off disk, today's in-progress players only ever live in memory
+export async function getAllPlayersForDate(date) {
+  rollOverIfNewDay();
+  if (date === currentDate) return players;
+
+  try {
+    const raw = await fs.promises.readFile(filePathFor(date), 'utf8');
+    return new Map(Object.entries(JSON.parse(raw)));
+  } catch (err) {
+    if (err.code === 'ENOENT') return new Map();
+    throw err;
+  }
+}
+
+const WORDLE_NUMBERS_FILE = path.join(DATA_DIR, 'wordle-numbers.json');
+let wordleNumbers = null; // date -> NYT puzzle number, lazy-loaded
+
+async function loadWordleNumbers() {
+  if (wordleNumbers) return;
+  wordleNumbers = new Map();
+  try {
+    const raw = await fs.promises.readFile(WORDLE_NUMBERS_FILE, 'utf8');
+    wordleNumbers = new Map(Object.entries(JSON.parse(raw)));
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('[playerStore] failed to load wordle numbers', err);
+  }
+}
+
+// Random fallback-word days never call this, so those dates just render without a number later
+export async function setWordleNumber(date, number) {
+  await loadWordleNumbers();
+  if (wordleNumbers.get(date) === number) return;
+  wordleNumbers.set(date, number);
+  await fs.promises.mkdir(DATA_DIR, { recursive: true });
+  await fs.promises.writeFile(WORDLE_NUMBERS_FILE, JSON.stringify(Object.fromEntries(wordleNumbers), null, 2));
+}
+
+export async function getWordleNumber(date) {
+  await loadWordleNumbers();
+  return wordleNumbers.get(date) ?? null;
+}
