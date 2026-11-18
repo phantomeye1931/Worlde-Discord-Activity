@@ -2,10 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import { ANSWERS } from './src/words.js';
 import { initBotBridge, reportGameFinished, requestStreak } from './src/botBridge.js';
+import { initGameBridge } from './src/gameBridge.js';
+import { loadToday } from './src/playerStore.js';
 
 const app = express();
 app.use(express.json());
-// The Activity always opens the root URL, and the real game (not the auth-demo index.html) belongs there
+// The Activity always opens the root URL, serve the game there instead of looking for index.html
 app.use(express.static('public', { index: 'game.html' }));
 
 // Resolving a Discord access_token to a user id via Discord's API on every call would get rate-limited fast
@@ -84,6 +86,24 @@ app.post('/api/game-finished', async (req, res) => {
   res.send({ ok: true });
 });
 
+// In case the process restarted mid-day, pick up wherever today's save file left off
+await loadToday();
+
 const port = process.env.PORT || 3001;
 const httpServer = app.listen(port, () => console.log(`Listening on http://localhost:${port}`));
-initBotBridge(httpServer);
+
+// Both wss instances are noServer: true, dispatch by path ourselves so they can share this one httpServer
+const botWss = initBotBridge();
+const gameWss = initGameBridge(resolveDiscordId, requestStreak);
+
+httpServer.on('upgrade', (req, socket, head) => {
+  const { pathname } = new URL(req.url, `http://${req.headers.host}`);
+
+  if (pathname === '/ws/bot') {
+    botWss.handleUpgrade(req, socket, head, (ws) => botWss.emit('connection', ws, req));
+  } else if (pathname === '/ws/game') {
+    gameWss.handleUpgrade(req, socket, head, (ws) => gameWss.emit('connection', ws, req));
+  } else {
+    socket.destroy();
+  }
+});

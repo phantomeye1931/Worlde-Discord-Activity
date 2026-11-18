@@ -14,12 +14,26 @@ let answer = null;
 let row = 0;
 let col = 0;
 let gameOver = false;
+let won = false;
 let accessToken = null;
+let instanceId = null;
+let displayName = null;
+let avatarHash = null;
+let gameSocket = null;
+let pendingSelfState = null; // self_state can arrive before /api/word resolves
+
+const myRows = []; // states only, this is what other players see of my board
+const myGuesses = []; // actual words, only ever sent back to rebuild my own board on rejoin
 
 const $streakValues = $('.streak-value');
+const $playersList = $('#playersList');
+const $loadingScreen = $('#loadingScreen');
 
 const $rows = $('.board-row');
 const $message = $('#message');
+
+// Bump this string on every JS edit, if it doesn't match on screen the bundle is stale
+$('#versionJs').text('JS v3');
 
 function tileAt(r, c) {
   return $rows.eq(r).children().eq(c);
@@ -50,6 +64,7 @@ function addLetter(letter) {
     .addClass('is-filled')
     .attr('aria-label', `${ordinal(col + 1)} letter, ${letter.toUpperCase()}`);
   col++;
+  sendBoardUpdate();
 }
 
 function removeLetter() {
@@ -59,6 +74,7 @@ function removeLetter() {
     .text('')
     .removeClass('is-filled')
     .attr('aria-label', 'empty');
+  sendBoardUpdate();
 }
 
 function currentGuess() {
@@ -121,6 +137,19 @@ function submitGuess() {
   }
 
   const states = evaluateGuess(guess);
+  myRows[activeRow] = states;
+  myGuesses[activeRow] = guess;
+  row++;
+  col = 0;
+
+  const isWin = guess.toUpperCase() === answer;
+  const isLoss = !isWin && activeRow === ROWS - 1;
+  if (isWin || isLoss) {
+    gameOver = true;
+    won = isWin;
+  }
+
+  sendBoardUpdate();
 
   states.forEach((state, c) => {
     const letter = guess[c];
@@ -140,22 +169,18 @@ function submitGuess() {
 
   const totalDelay = (COLS - 1) * STAGGER + FLIP_DURATION;
 
-  if (guess.toUpperCase() === answer) {
-    gameOver = true;
+  if (isWin) {
     setTimeout(() => setMessage('You win!'), totalDelay);
     reportGameFinished(activeRow + 1, true);
     return;
   }
 
-  if (activeRow === ROWS - 1) {
-    gameOver = true;
+  if (isLoss) {
     setTimeout(() => setMessage(`Out of guesses! The word was ${answer}.`), totalDelay);
     reportGameFinished(ROWS, false);
     return;
   }
 
-  row++;
-  col = 0;
   setMessage('');
 }
 
@@ -201,6 +226,174 @@ $(document).on('keydown', (event) => {
   if (event.key === 'Escape') closeBotSidebar();
 });
 
+const otherPlayers = new Map(); // discordId -> { $player, $divider }
+
+function buildMiniBoard(rows, typingCol) {
+  const $board = $('<div class="player-board" aria-hidden="true"></div>');
+  const typingRow = rows.length; // the row they're currently typing into, if any
+  for (let r = 0; r < ROWS; r++) {
+    const row = rows[r] || [];
+    const $row = $('<div class="mini-row"></div>');
+    for (let c = 0; c < COLS; c++) {
+      const $tile = $('<div class="mini-tile"></div>');
+      const state = row[c];
+      if (['correct', 'present', 'absent'].includes(state)) {
+        $tile.addClass(`is-${state}`);
+      } else if (r === typingRow && c < typingCol) {
+        $tile.addClass('is-typed'); // filled, but the color is still unknown to everyone else
+      }
+      $row.append($tile);
+    }
+    $board.append($row);
+  }
+  return $board;
+}
+
+function renderAvatar($avatar, discordId, name, avatarHash) {
+  const letter = (name || '?').charAt(0).toUpperCase();
+  if (!avatarHash) {
+    $avatar.empty().text(letter);
+    return;
+  }
+  // Low-res is plenty for a 40px circle, no point pulling full-size avatars
+  const $img = $('<img alt="" />').attr('src', `https://cdn.discordapp.com/avatars/${discordId}/${avatarHash}.png?size=64`);
+  $img.on('error', () => $avatar.empty().text(letter));
+  $avatar.empty().append($img);
+}
+
+function reorderPlayersList() {
+  const entries = Array.from(otherPlayers.values());
+  entries.sort((a, b) => Number(b.active) - Number(a.active)); // active players float to the top
+  entries.forEach((entry) => $playersList.append(entry.$player, entry.$divider));
+}
+
+function upsertOtherPlayer(discordId, name, rows, typingCol, avatarHash, active, streak) {
+  let entry = otherPlayers.get(discordId);
+  if (!entry) {
+    const $player = $('<div class="player"></div>');
+    const $avatar = $('<div class="player-avatar"></div>');
+    renderAvatar($avatar, discordId, name, avatarHash);
+    const $streak = $('<span class="player-streak"></span>');
+    $player.append($avatar, $streak);
+    entry = { $player, $streak, $divider: $('<div class="divider"></div>'), active: false };
+    otherPlayers.set(discordId, entry);
+    $playersList.append($player, entry.$divider);
+  }
+  entry.$streak.text(typeof streak === 'number' ? `\u{1F525}${streak}` : '');
+  entry.$player.find('.player-board').remove();
+  entry.$player.append(buildMiniBoard(rows, typingCol));
+  entry.active = Boolean(active);
+  entry.$player.toggleClass('is-active', entry.active);
+  reorderPlayersList();
+}
+
+function removeOtherPlayer(discordId) {
+  const entry = otherPlayers.get(discordId);
+  if (!entry) return;
+  entry.$player.remove();
+  entry.$divider.remove();
+  otherPlayers.delete(discordId);
+}
+
+function sendBoardUpdate() {
+  if (!gameSocket || gameSocket.readyState !== WebSocket.OPEN) {
+    console.log('[gameSocket] skipped board_update, socket not open (readyState:', gameSocket?.readyState, ')');
+    return;
+  }
+  console.log('[gameSocket] sending board_update', { rows: myRows.length, typingCol: col, gameOver, won });
+  gameSocket.send(JSON.stringify({
+    type: 'board_update',
+    payload: { rows: myRows, typingCol: col, guesses: myGuesses, gameOver, won },
+  }));
+}
+
+function hasProgress(state) {
+  return !!state && Array.isArray(state.guesses) && state.guesses.length > 0;
+}
+
+// Replays guesses the server remembers from before a rejoin, straight to final state, no animation
+function applySelfState(state) {
+  state.guesses.forEach((guess, r) => {
+    const states = evaluateGuess(guess);
+    myRows[r] = states;
+    myGuesses[r] = guess;
+    states.forEach((state_, c) => {
+      const letter = guess[c];
+      tileAt(r, c)
+        .text(letter)
+        .addClass(`is-${state_}`)
+        .attr('aria-label', `${ordinal(c + 1)} letter, ${letter.toUpperCase()}, ${state_}`);
+      upgradeKey(letter, state_);
+    });
+  });
+
+  row = state.guesses.length;
+  col = 0;
+  gameOver = state.gameOver;
+  won = state.won;
+
+  if (gameOver) {
+    setMessage(won ? 'You win!' : `Out of guesses! The word was ${answer}.`);
+  } else {
+    setMessage('');
+  }
+}
+
+function handleSelfState(state) {
+  if (!answer) {
+    pendingSelfState = state;
+    return;
+  }
+  if (hasProgress(state)) applySelfState(state);
+}
+
+function connectGameSocket() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const url = `${protocol}//${location.host}/ws/game`;
+  console.log('[gameSocket] connecting to', url);
+  gameSocket = new WebSocket(url);
+
+  gameSocket.addEventListener('open', () => {
+    console.log('[gameSocket] open, sending auth', { instanceId, displayName, hasAvatar: !!avatarHash });
+    gameSocket.send(JSON.stringify({ type: 'auth', payload: { accessToken, instanceId, displayName, avatarHash } }));
+  });
+
+  gameSocket.addEventListener('error', (event) => {
+    console.error('[gameSocket] error', event);
+  });
+
+  gameSocket.addEventListener('message', (event) => {
+    let envelope;
+    try {
+      envelope = JSON.parse(event.data);
+    } catch {
+      console.error('[gameSocket] received non-JSON message', event.data);
+      return;
+    }
+
+    console.log('[gameSocket] received', envelope.type, envelope.payload);
+
+    if (envelope.type === 'roster') {
+      envelope.payload.players.forEach((p) => {
+        upsertOtherPlayer(p.discordId, p.displayName, p.rows, p.typingCol, p.avatarHash, p.active, p.streak);
+      });
+    } else if (envelope.type === 'player_update') {
+      const p = envelope.payload;
+      upsertOtherPlayer(p.discordId, p.displayName, p.rows, p.typingCol, p.avatarHash, p.active, p.streak);
+    } else if (envelope.type === 'player_left') {
+      removeOtherPlayer(envelope.payload.discordId);
+    } else if (envelope.type === 'self_state') {
+      handleSelfState(envelope.payload);
+    }
+  });
+
+  // Discord Activities can suspend the tab, just reconnect and let roster resync
+  gameSocket.addEventListener('close', (event) => {
+    console.log('[gameSocket] closed', { code: event.code, reason: event.reason }, 'reconnecting in 3s');
+    setTimeout(connectGameSocket, 3000);
+  });
+}
+
 function reportGameFinished(guesses, finished) {
   fetch('/api/game-finished', {
     method: 'POST',
@@ -239,18 +432,31 @@ async function main() {
   });
   ({ access_token: accessToken } = await tokenResponse.json());
 
-  await discordSdk.commands.authenticate({ access_token: accessToken });
+  const auth = await discordSdk.commands.authenticate({ access_token: accessToken });
+  instanceId = discordSdk.instanceId;
+  displayName = auth.user.global_name || auth.user.username;
+  avatarHash = auth.user.avatar;
 
   loadStreaks();
+  connectGameSocket();
 
   setMessage("Loading today's word...");
   const wordResponse = await fetch('/api/word');
   const { word } = await wordResponse.json();
   answer = word.toUpperCase();
-  setMessage('');
+
+  if (hasProgress(pendingSelfState)) {
+    applySelfState(pendingSelfState);
+  } else {
+    setMessage('');
+  }
+  pendingSelfState = null;
+
+  $loadingScreen.prop('hidden', true);
 }
 
 main().catch((err) => {
   console.error('Failed to start game', err);
   setMessage(`Error: ${err.message}`);
+  $loadingScreen.prop('hidden', true);
 });

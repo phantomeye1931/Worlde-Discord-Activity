@@ -63,8 +63,10 @@ function handleMessage(raw) {
   }
 }
 
-export function initBotBridge(httpServer) {
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws/bot' });
+// noServer: a {server, path} instance would abort any upgrade whose path doesn't match its own,
+// which kills other WebSocketServers sharing this httpServer before they ever see the request
+export function initBotBridge() {
+  const wss = new WebSocketServer({ noServer: true });
 
   wss.on('connection', (ws) => {
     let authed = false;
@@ -98,6 +100,8 @@ export function initBotBridge(httpServer) {
       if (bot === ws) bot = null;
     });
   });
+
+  return wss;
 }
 
 export function requestStreak(discordId) {

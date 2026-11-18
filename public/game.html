@@ -7,105 +7,14 @@
   <link rel="stylesheet" href="game.css" />
 </head>
 <body>
+  <div class="loading-screen" id="loadingScreen">
+    <div class="spinner"></div>
+    <p>Loading GLaDOS Wordle...</p>
+  </div>
+
   <div class="game">
     <aside class="sidebar" aria-label="Players">
-      <div class="player">
-        <div class="player-avatar">F</div>
-        <div class="player-board" aria-hidden="true">
-          <div class="mini-row">
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-correct"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="player">
-        <div class="player-avatar">S</div>
-        <div class="player-board" aria-hidden="true">
-          <div class="mini-row">
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-present"></div>
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-absent"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile is-present"></div>
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-absent"></div>
-            <div class="mini-tile is-present"></div>
-            <div class="mini-tile is-absent"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-          <div class="mini-row">
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-            <div class="mini-tile"></div>
-          </div>
-        </div>
-      </div>
+      <div id="playersList"></div>
 
       <div class="divider"></div>
 
@@ -231,6 +140,12 @@
       <div class="sidebar-item">
         <p>Set daily reminder</p>
         <code>/wordle reminder on|off</code>
+      </div>
+
+      <div class="version-info">
+        <span>HTML v2</span>
+        <span class="version-css"></span>
+        <span id="versionJs"></span>
       </div>
     </aside>
   </div>
