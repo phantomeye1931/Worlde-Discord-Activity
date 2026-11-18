@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GLaDOS Wordle</title>
+  <link rel="stylesheet" href="game.css" />
+</head>
+<body>
+  <div class="game">
+    <aside class="sidebar" aria-label="Players">
+      <div class="player">
+        <div class="player-avatar">F</div>
+        <div class="player-board" aria-hidden="true">
+          <div class="mini-row">
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-correct"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="player">
+        <div class="player-avatar">S</div>
+        <div class="player-board" aria-hidden="true">
+          <div class="mini-row">
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-present"></div>
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-absent"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile is-present"></div>
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-absent"></div>
+            <div class="mini-tile is-present"></div>
+            <div class="mini-tile is-absent"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+          <div class="mini-row">
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+            <div class="mini-tile"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="streak-section">
+        <div class="streak-item">
+          <p>Your streak</p>
+          <span class="streak-value">4</span>
+        </div>
+        <div class="streak-item">
+          <p>Server streak</p>
+          <span class="streak-value">12</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="board-area">
+      <button type="button" class="bot-avatar" id="botAvatarButton" aria-haspopup="true" aria-expanded="false" aria-controls="botSidebar" aria-label="Bot menu">
+        <img src="images/bot-avatar.png" alt="GLaDOS Wordle bot" />
+      </button>
+
+      <p class="message" id="message"></p>
+
+      <div class="board" role="group" aria-label="Guesses">
+        <div class="board-row">
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+        </div>
+        <div class="board-row">
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+        </div>
+        <div class="board-row">
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+        </div>
+        <div class="board-row">
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+        </div>
+        <div class="board-row">
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+        </div>
+        <div class="board-row">
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+          <div class="tile" role="img" aria-label="empty"></div>
+        </div>
+      </div>
+
+      <div class="keyboard" role="group" aria-label="Keyboard">
+        <div class="keyboard-row">
+          <button type="button" class="key" data-key="q">q</button>
+          <button type="button" class="key" data-key="w">w</button>
+          <button type="button" class="key" data-key="e">e</button>
+          <button type="button" class="key" data-key="r">r</button>
+          <button type="button" class="key" data-key="t">t</button>
+          <button type="button" class="key" data-key="y">y</button>
+          <button type="button" class="key" data-key="u">u</button>
+          <button type="button" class="key" data-key="i">i</button>
+          <button type="button" class="key" data-key="o">o</button>
+          <button type="button" class="key" data-key="p">p</button>
+        </div>
+        <div class="keyboard-row">
+          <div class="key-spacer"></div>
+          <button type="button" class="key" data-key="a">a</button>
+          <button type="button" class="key" data-key="s">s</button>
+          <button type="button" class="key" data-key="d">d</button>
+          <button type="button" class="key" data-key="f">f</button>
+          <button type="button" class="key" data-key="g">g</button>
+          <button type="button" class="key" data-key="h">h</button>
+          <button type="button" class="key" data-key="j">j</button>
+          <button type="button" class="key" data-key="k">k</button>
+          <button type="button" class="key" data-key="l">l</button>
+          <div class="key-spacer"></div>
+        </div>
+        <div class="keyboard-row">
+          <button type="button" class="key key-wide" data-key="enter" aria-label="enter">enter</button>
+          <button type="button" class="key" data-key="z">z</button>
+          <button type="button" class="key" data-key="x">x</button>
+          <button type="button" class="key" data-key="c">c</button>
+          <button type="button" class="key" data-key="v">v</button>
+          <button type="button" class="key" data-key="b">b</button>
+          <button type="button" class="key" data-key="n">n</button>
+          <button type="button" class="key" data-key="m">m</button>
+          <button type="button" class="key key-wide" data-key="backspace" aria-label="backspace">⌫</button>
+        </div>
+      </div>
+    </main>
+
+    <aside class="sidebar sidebar-right" id="botSidebar" aria-label="Bot commands" hidden>
+      <div class="sidebar-item">
+        <p>Playing wordle</p>
+        <code>/wordle play</code>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sidebar-item">
+        <p>View stats</p>
+        <code>/wordle stats</code>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sidebar-item">
+        <p>Set daily reminder</p>
+        <code>/wordle reminder on|off</code>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="dist/game.js"></script>
+</body>
+</html>
