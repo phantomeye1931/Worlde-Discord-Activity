@@ -33,7 +33,7 @@ const $rows = $('.board-row');
 const $message = $('#message');
 
 // Bump this string on every JS edit, if it doesn't match on screen the bundle is stale
-$('#versionJs').text('JS v3');
+$('#versionJs').text('JS v1.0');
 
 function tileAt(r, c) {
   return $rows.eq(r).children().eq(c);
@@ -262,23 +262,39 @@ function renderAvatar($avatar, discordId, name, avatarHash) {
 }
 
 function reorderPlayersList() {
+  // Clear all existing players and dividers from the DOM
+  $playersList.empty();
+
   const entries = Array.from(otherPlayers.values());
-  entries.sort((a, b) => Number(b.active) - Number(a.active)); // active players float to the top
-  entries.forEach((entry) => $playersList.append(entry.$player, entry.$divider));
+  entries.sort((a, b) => Number(b.active) - Number(a.active));
+
+  entries.forEach((entry, index) => {
+    $playersList.append(entry.$player);
+
+    // Only append a divider if this is NOT the last player in the list
+    if (index < entries.length - 1) {
+      $playersList.append('<div class="divider"></div>');
+    }
+  });
 }
 
 function upsertOtherPlayer(discordId, name, rows, typingCol, avatarHash, active, streak) {
   let entry = otherPlayers.get(discordId);
-  if (!entry) {
+
+  if (!entry) { // Compute if empty
     const $player = $('<div class="player"></div>');
+    const $topRow = $('<div class="player-info"></div>');
     const $avatar = $('<div class="player-avatar"></div>');
     renderAvatar($avatar, discordId, name, avatarHash);
     const $streak = $('<span class="player-streak"></span>');
-    $player.append($avatar, $streak);
-    entry = { $player, $streak, $divider: $('<div class="divider"></div>'), active: false };
+    $topRow.append($avatar, $streak);
+    $player.append($topRow);
+
+    // Removed $divider from entry object
+    entry = { $player, $streak, active: false };
     otherPlayers.set(discordId, entry);
-    $playersList.append($player, entry.$divider);
   }
+
   entry.$streak.text(typeof streak === 'number' ? `\u{1F525}${streak}` : '');
   entry.$player.find('.player-board').remove();
   entry.$player.append(buildMiniBoard(rows, typingCol));
@@ -291,8 +307,8 @@ function removeOtherPlayer(discordId) {
   const entry = otherPlayers.get(discordId);
   if (!entry) return;
   entry.$player.remove();
-  entry.$divider.remove();
   otherPlayers.delete(discordId);
+  reorderPlayersList();
 }
 
 function sendBoardUpdate() {
