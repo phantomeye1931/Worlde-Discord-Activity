@@ -418,7 +418,10 @@ function loadStreaks() {
       $streakValues.eq(0).text(playerStreak ?? '?');
       $streakValues.eq(1).text(serverStreak ?? '?');
     })
-    .catch((err) => console.error('Failed to load streaks', err));
+    .catch((err) => {
+      console.error('Failed to load streaks', err);
+      setMessage(`Error: ${err.message}`);
+    });
 }
 
 async function main() {
@@ -448,7 +451,10 @@ async function main() {
 
   // The "Playing GLaDOS" headline itself is fixed to the app's registered name, this just adds the line under it
   discordSdk.commands.setActivity({ activity: { type: 0, details: 'Playing Wordle' } })
-    .catch((err) => console.error('Failed to set activity presence', err));
+    .catch((err) => {
+      console.error('Failed to set activity presence', err);
+      setMessage(`Error: ${err.message}`);
+    });
 
   loadStreaks();
   connectGameSocket();
