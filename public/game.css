@@ -318,14 +318,15 @@ body {
 }
 
 /* Keyboard */
-/* Natural size is 480px wide x (3 rows x 58px + 2 gaps) tall; same contain-fit as .board */
+/* Unlike the board, the keyboard has no aspect ratio to preserve: width always fills
+   the available space (up to its natural max), height just shrinks to fit vertically */
 .keyboard {
   display: flex;
   flex-direction: column;
   gap: 8px;
 
-  width: min(100cqw, 100cqh * 480 / 190);
-  height: min(100cqh, 100cqw * 190 / 480);
+  width: 100%;
+  height: 100%;
   max-width: 480px;
   max-height: 190px;
 }
