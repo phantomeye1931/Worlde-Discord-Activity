@@ -33,7 +33,7 @@ const $rows = $('.board-row');
 const $message = $('#message');
 
 // Bump this string on every JS edit, if it doesn't match on screen the bundle is stale
-$('#versionJs').text('JS v1.0');
+$('#versionJs').text('JS v1.1');
 
 function tileAt(r, c) {
   return $rows.eq(r).children().eq(c);
@@ -170,7 +170,7 @@ function submitGuess() {
   const totalDelay = (COLS - 1) * STAGGER + FLIP_DURATION;
 
   if (isWin) {
-    setTimeout(() => setMessage('You win!'), totalDelay);
+    setTimeout(() => setMessage(`Solved in ${activeRow + 1}/${ROWS}`), totalDelay);
     reportGameFinished(activeRow + 1, true);
     return;
   }
@@ -268,14 +268,7 @@ function reorderPlayersList() {
   const entries = Array.from(otherPlayers.values());
   entries.sort((a, b) => Number(b.active) - Number(a.active));
 
-  entries.forEach((entry, index) => {
-    $playersList.append(entry.$player);
-
-    // Only append a divider if this is NOT the last player in the list
-    if (index < entries.length - 1) {
-      $playersList.append('<div class="divider"></div>');
-    }
-  });
+  entries.forEach((entry) => $playersList.append(entry.$player));
 }
 
 function upsertOtherPlayer(discordId, name, rows, typingCol, avatarHash, active, streak) {
@@ -349,7 +342,7 @@ function applySelfState(state) {
   won = state.won;
 
   if (gameOver) {
-    setMessage(won ? 'You win!' : `Out of guesses! The word was ${answer}.`);
+    setMessage(won ? `Solved in ${state.guesses.length}/${ROWS}` : `Out of guesses! The word was ${answer}.`);
   } else {
     setMessage('');
   }
@@ -438,7 +431,7 @@ async function main() {
     response_type: 'code',
     state: '',
     prompt: 'none',
-    scope: ['identify', 'guilds'],
+    scope: ['identify', 'guilds', 'rpc.activities.write'],
   });
 
   const tokenResponse = await fetch('/api/token', {
@@ -452,6 +445,10 @@ async function main() {
   instanceId = discordSdk.instanceId;
   displayName = auth.user.global_name || auth.user.username;
   avatarHash = auth.user.avatar;
+
+  // The "Playing GLaDOS" headline itself is fixed to the app's registered name, this just adds the line under it
+  discordSdk.commands.setActivity({ activity: { type: 0, details: 'Playing Wordle' } })
+    .catch((err) => console.error('Failed to set activity presence', err));
 
   loadStreaks();
   connectGameSocket();
