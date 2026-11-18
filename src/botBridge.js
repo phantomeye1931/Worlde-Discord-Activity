@@ -126,7 +126,7 @@ export function requestStreak(discordId) {
   });
 }
 
-export function reportGameFinished(discordId, guesses, finished) {
-  queue.push({ id: randomUUID(), type: 'game_finished', payload: { discordId, guesses, finished } });
+export function reportGameFinished(discordId, guesses, finished, rows) {
+  queue.push({ id: randomUUID(), type: 'game_finished', payload: { discordId, guesses, finished, rows } });
   void drainQueue();
 }

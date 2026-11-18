@@ -81,8 +81,8 @@ app.post('/api/game-finished', async (req, res) => {
   const discordId = await resolveDiscordId(bearerToken(req) ?? '');
   if (!discordId) return res.status(401).send({ error: 'Invalid or missing access token' });
 
-  const { guesses, finished } = req.body;
-  reportGameFinished(discordId, guesses, finished);
+  const { guesses, finished, rows } = req.body;
+  reportGameFinished(discordId, guesses, finished, rows);
   res.send({ ok: true });
 });
 

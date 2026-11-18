@@ -398,7 +398,7 @@ function reportGameFinished(guesses, finished) {
   fetch('/api/game-finished', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ guesses, finished }),
+    body: JSON.stringify({ guesses, finished, rows: myRows }),
   }).catch((err) => console.error('Failed to report finished game', err));
 }
 
