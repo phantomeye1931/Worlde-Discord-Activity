@@ -35,6 +35,10 @@ function sanitizeAvatarHash(hash) {
   return typeof hash === 'string' && /^a?_?[0-9a-f]{32}$/i.test(hash) ? hash : null;
 }
 
+function sanitizeGuildId(guildId) {
+  return typeof guildId === 'string' && /^\d{15,25}$/.test(guildId) ? guildId : null;
+}
+
 function broadcast(instanceId, message, exceptWs) {
   const room = rooms.get(instanceId);
   if (!room) return;
@@ -89,7 +93,7 @@ function rosterPayload(instanceId, exceptDiscordId) {
 }
 
 // noServer, dispatched manually in server.js alongside the bot bridge's wss, see botBridge.js for why
-export function initGameBridge(resolveDiscordId, requestStreak) {
+export function initGameBridge(resolveDiscordId, requestStreak, resolveGuildAvatar) {
   const wss = new WebSocketServer({ noServer: true });
 
   wss.on('connection', (ws) => {
@@ -134,6 +138,10 @@ export function initGameBridge(resolveDiscordId, requestStreak) {
         instanceId = requestedInstanceId;
         const displayName = String(envelope.payload?.displayName ?? '?').slice(0, 32);
         const avatarHash = sanitizeAvatarHash(envelope.payload?.avatarHash);
+        const guildId = sanitizeGuildId(envelope.payload?.guildId);
+        const guildAvatarHash = guildId
+          ? sanitizeAvatarHash(await resolveGuildAvatar(envelope.payload?.accessToken ?? '', guildId))
+          : null;
 
         const streakData = await requestStreak(discordId);
         const streak = typeof streakData?.playerStreak === 'number' ? streakData.playerStreak : null;
@@ -146,7 +154,7 @@ export function initGameBridge(resolveDiscordId, requestStreak) {
         const won = persisted?.won ?? false;
 
         if (!rooms.has(instanceId)) rooms.set(instanceId, new Map());
-        rooms.get(instanceId).set(discordId, { ws, displayName, avatarHash, streak, rows, typingCol: 0, gameOver });
+        rooms.get(instanceId).set(discordId, { ws, displayName, avatarHash, guildId, guildAvatarHash, streak, rows, typingCol: 0, gameOver });
 
         console.log(`[gameBridge] ${discordId} (${displayName}) joined room ${instanceId}, now ${rooms.get(instanceId).size} player(s) in room, restored ${rows.length} row(s)`);
 
@@ -187,6 +195,8 @@ export function initGameBridge(resolveDiscordId, requestStreak) {
           upsertPlayer(discordId, {
             displayName: player.displayName,
             avatarHash: player.avatarHash,
+            guildId: player.guildId,
+            guildAvatarHash: player.guildAvatarHash,
             streak: player.streak,
             rows: player.rows,
             guesses,

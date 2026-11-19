@@ -30,6 +30,22 @@ async function resolveDiscordId(accessToken) {
   return id;
 }
 
+// A guild-specific avatar, null if the member has none set (falls back to their global avatar elsewhere)
+async function resolveGuildAvatar(accessToken, guildId) {
+  try {
+    const response = await fetch(`https://discord.com/api/users/@me/guilds/${guildId}/member`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return null;
+
+    const member = await response.json();
+    return typeof member.avatar === 'string' ? member.avatar : null;
+  } catch (err) {
+    console.error('Failed to resolve guild avatar', err);
+    return null;
+  }
+}
+
 function bearerToken(req) {
   const header = req.get('authorization') ?? '';
   return header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -107,9 +123,10 @@ app.get('/api/results-image', async (req, res) => {
   const date = typeof req.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
     ? req.query.date
     : new Date().toISOString().slice(0, 10);
+  const guildId = typeof req.query.guildId === 'string' ? req.query.guildId : null;
 
   try {
-    const png = await renderResultsImage(date);
+    const png = await renderResultsImage(date, guildId);
     res.set('Content-Type', 'image/png');
     res.send(png);
   } catch (err) {
@@ -118,7 +135,8 @@ app.get('/api/results-image', async (req, res) => {
   }
 });
 
-// Bot-only: renders a single player's results image for today only
+// Bot-only: renders a single player's results image for today, blank board if they haven't guessed yet.
+// displayName/avatarHash are only used as a fallback, when the player has no record for today at all
 app.get('/api/player-image', async (req, res) => {
   if (!isImageAuthorized(req)) {
     return res.status(401).send({ error: 'Invalid or missing token' });
@@ -126,10 +144,14 @@ app.get('/api/player-image', async (req, res) => {
 
   const discordId = typeof req.query.discordId === 'string' ? req.query.discordId : null;
   if (!discordId) return res.status(400).send({ error: 'Missing discordId' });
+  const guildId = typeof req.query.guildId === 'string' ? req.query.guildId : null;
 
   try {
-    const png = await renderPlayerImage(discordId);
-    if (!png) return res.status(404).send({ error: 'No results for that player today' });
+    const png = await renderPlayerImage(discordId, guildId, {
+      displayName: typeof req.query.displayName === 'string' ? req.query.displayName : null,
+      avatarHash: typeof req.query.avatarHash === 'string' ? req.query.avatarHash : null,
+      guildAvatarHash: typeof req.query.guildAvatarHash === 'string' ? req.query.guildAvatarHash : null,
+    });
     res.set('Content-Type', 'image/png');
     res.send(png);
   } catch (err) {
@@ -146,7 +168,7 @@ const httpServer = app.listen(port, () => console.log(`Listening on http://local
 
 // Both wss instances are noServer: true, dispatch by path ourselves so they can share this one httpServer
 const botWss = initBotBridge();
-const gameWss = initGameBridge(resolveDiscordId, requestStreak);
+const gameWss = initGameBridge(resolveDiscordId, requestStreak, resolveGuildAvatar);
 
 httpServer.on('upgrade', (req, socket, head) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);

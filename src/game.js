@@ -18,6 +18,7 @@ let gameOver = false;
 let won = false;
 let accessToken = null;
 let instanceId = null;
+let guildId = null;
 let displayName = null;
 let avatarHash = null;
 let gameSocket = null;
@@ -34,7 +35,7 @@ const $rows = $('.board-row');
 const $message = $('#message');
 
 // Bump this string on every JS edit, if it doesn't match on screen the bundle is stale
-$('#versionJs').text('JS v1.1');
+$('#versionJs').text('JS v1.2');
 
 function tileAt(r, c) {
   return $rows.eq(r).children().eq(c);
@@ -365,7 +366,7 @@ function connectGameSocket() {
 
   gameSocket.addEventListener('open', () => {
     console.log('[gameSocket] open, sending auth', { instanceId, displayName, hasAvatar: !!avatarHash });
-    gameSocket.send(JSON.stringify({ type: 'auth', payload: { accessToken, instanceId, displayName, avatarHash } }));
+    gameSocket.send(JSON.stringify({ type: 'auth', payload: { accessToken, instanceId, guildId, displayName, avatarHash } }));
   });
 
   gameSocket.addEventListener('error', (event) => {
@@ -435,7 +436,7 @@ async function main() {
     response_type: 'code',
     state: '',
     prompt: 'none',
-    scope: ['identify', 'guilds', 'rpc.activities.write'],
+    scope: ['identify', 'guilds', 'guilds.members.read', 'rpc.activities.write'],
   });
 
   const tokenResponse = await fetch('/api/token', {
@@ -447,6 +448,7 @@ async function main() {
 
   const auth = await discordSdk.commands.authenticate({ access_token: accessToken });
   instanceId = discordSdk.instanceId;
+  guildId = discordSdk.guildId;
   displayName = auth.user.global_name || auth.user.username;
   avatarHash = auth.user.avatar;
 
