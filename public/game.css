@@ -447,38 +447,38 @@ html, body {
 }
 
 /* PiP */
-/*@media (max-height: 400px) {*/
-/*  .keyboard,*/
-/*  .sidebar,*/
-/*  .board,*/
-/*  .message {*/
-/*    display: none;*/
-/*  }*/
+@media (max-height: 400px) {
+  .keyboard,
+  .sidebar,
+  .board,
+  .message {
+    display: none;
+  }
 
-/*  .board-area {*/
-/*    width: 100vw;*/
-/*    height: 100vh;*/
-/*    display: flex;*/
-/*    align-items: center;*/
-/*    justify-content: center;*/
-/*    position: relative;*/
+  .board-area {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 
-/*    gap: 1rem;*/
+    gap: 1rem;
 
-/*    &::after {*/
-/*      content: "Wordle";*/
-/*      font-size: 1.5rem;*/
-/*      font-weight: bold;*/
-/*      color: var(--color-text);*/
-/*    }*/
-/*  }*/
+    &::after {
+      content: "Wordle";
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--color-text);
+    }
+  }
 
-/*  .bot-avatar {*/
-/*    height: 100px;*/
-/*    width: 100px;*/
-/*    position: static;*/
-/*  }*/
-/*}*/
+  .bot-avatar {
+    height: 100px;
+    width: 100px;
+    position: static;
+  }
+}
 
 /* Bump this string on every CSS edit, if it doesn't match on screen the stylesheet is stale */
-.version-css::after { content: "CSS v1.2"; }
+.version-css::after { content: "CSS v1.3"; }
