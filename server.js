@@ -3,7 +3,7 @@ import express from 'express';
 import { ANSWERS } from './src/words.js';
 import { initBotBridge, reportGameFinished, requestStreak } from './src/botBridge.js';
 import { initGameBridge } from './src/gameBridge.js';
-import { loadToday, setWordleNumber } from './src/playerStore.js';
+import { getAllPlayersForDate, getWordleNumber, loadToday, setWordleNumber } from './src/playerStore.js';
 import { renderResultsImage, renderPlayerImage } from './src/renderResultImage.js';
 
 const app = express();
@@ -132,6 +132,35 @@ app.get('/api/results-image', async (req, res) => {
   } catch (err) {
     console.error('Failed to render results image', err);
     res.status(500).send({ error: 'Failed to render image' });
+  }
+});
+
+// Bot-only: the raw results for a given day, the same records the results image is drawn from - so the bot
+// can list who played without keeping its own copy. Guess counts only, never the words: today's would spoil the answer
+app.get('/api/results', async (req, res) => {
+  if (!isImageAuthorized(req)) {
+    return res.status(401).send({ error: 'Invalid or missing token' });
+  }
+
+  const date = typeof req.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
+    ? req.query.date
+    : new Date().toISOString().slice(0, 10);
+
+  try {
+    const players = [...(await getAllPlayersForDate(date))]
+      .filter(([, record]) => (record.guesses?.length ?? 0) > 0)
+      .map(([discordId, record]) => ({
+        discordId,
+        displayName: record.displayName ?? null,
+        guesses: record.guesses.length,
+        gameOver: Boolean(record.gameOver),
+        won: Boolean(record.won),
+      }));
+
+    res.send({ date, wordleNumber: await getWordleNumber(date), players });
+  } catch (err) {
+    console.error('Failed to load results', err);
+    res.status(500).send({ error: 'Failed to load results' });
   }
 });
 
