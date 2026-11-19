@@ -106,6 +106,17 @@ async function screenshotCards(wordleNumber, players) {
   try {
     await page.setViewport({ width: 1000, height: 800, deviceScaleFactor: 2 });
     await page.setContent(html, { waitUntil: 'networkidle0' });
+    // Pad the page out to an exact 16:9 box (width a multiple of 16) with the content centered,
+    // so Discord embeds always get the same shape regardless of player count
+    await page.evaluate(() => {
+      const el = document.getElementById('resultPage');
+      const { width, height } = el.getBoundingClientRect();
+      const targetWidth = Math.ceil(Math.max(width, (height * 16) / 9) / 16) * 16;
+      el.style.boxSizing = 'border-box';
+      el.style.width = `${targetWidth}px`;
+      el.style.height = `${(targetWidth / 16) * 9}px`;
+      el.style.justifyContent = 'center';
+    });
     const element = await page.$('#resultPage');
     return await element.screenshot({ type: 'png' });
   } finally {

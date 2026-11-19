@@ -90,9 +90,17 @@ app.post('/api/game-finished', async (req, res) => {
   res.send({ ok: true });
 });
 
+// Image endpoints accept the bot bridge token, or WORDLE_IMAGE_TOKEN: an image-only token for e.g. a beta bot,
+// which must not get the bridge token since the last bot to authenticate on /ws/bot takes over the bridge
+function isImageAuthorized(req) {
+  const token = bearerToken(req);
+  if (!token) return false;
+  return [process.env.WORDLE_WS_TOKEN, process.env.WORDLE_IMAGE_TOKEN].some((t) => t && t === token);
+}
+
 // Bot-only: renders a shareable results image (see preview.png/preview2.png) for a given day
 app.get('/api/results-image', async (req, res) => {
-  if (bearerToken(req) !== process.env.WORDLE_WS_TOKEN) {
+  if (!isImageAuthorized(req)) {
     return res.status(401).send({ error: 'Invalid or missing token' });
   }
 
@@ -112,7 +120,7 @@ app.get('/api/results-image', async (req, res) => {
 
 // Bot-only: renders a single player's results image for today only
 app.get('/api/player-image', async (req, res) => {
-  if (bearerToken(req) !== process.env.WORDLE_WS_TOKEN) {
+  if (!isImageAuthorized(req)) {
     return res.status(401).send({ error: 'Invalid or missing token' });
   }
 

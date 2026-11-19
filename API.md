@@ -1,10 +1,12 @@
 # Results image API
 
-Bot-only endpoints that render a shareable PNG of guess boards, styled like `game.html`. Both require:
+Bot-only endpoints that render a shareable PNG of guess boards, styled like `game.html`. Images are always exactly 16:9, with the content centered. Both require:
 
 ```
-Authorization: Bearer <WORDLE_WS_TOKEN>
+Authorization: Bearer <WORDLE_WS_TOKEN or WORDLE_IMAGE_TOKEN>
 ```
+
+`WORDLE_IMAGE_TOKEN` is image-only: it can't authenticate on `/ws/bot`. Give it to bots (e.g. a beta bot) that need images but must not take over the bot bridge, since the last bot to authenticate there replaces the previous one.
 
 ## `GET /api/results-image`
 
