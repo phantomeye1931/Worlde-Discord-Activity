@@ -448,9 +448,9 @@ html, body {
 
 /* PiP */
 @media (max-height: 400px) {
-  .keyboard,
+  .keyboard-stage,
   .sidebar,
-  .board,
+  .board-stage,
   .message {
     display: none;
   }
@@ -481,4 +481,4 @@ html, body {
 }
 
 /* Bump this string on every CSS edit, if it doesn't match on screen the stylesheet is stale */
-.version-css::after { content: "CSS v1.3"; }
+.version-css::after { content: "CSS v1.4"; }
