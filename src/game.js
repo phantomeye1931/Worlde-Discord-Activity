@@ -7,6 +7,7 @@ const clientId = DISCORD_CLIENT_ID;
 
 const ROWS = 6;
 const COLS = 5;
+const WIN_MESSAGES = ['Cheater.', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'];
 const RANK = { absent: 0, present: 1, correct: 2 };
 const VALID_WORD_SET = new Set(VALID_WORDS);
 
@@ -170,7 +171,7 @@ function submitGuess() {
   const totalDelay = (COLS - 1) * STAGGER + FLIP_DURATION;
 
   if (isWin) {
-    setTimeout(() => setMessage(`Solved in ${activeRow + 1}/${ROWS}`), totalDelay);
+    setTimeout(() => setMessage(WIN_MESSAGES[activeRow]), totalDelay);
     reportGameFinished(activeRow + 1, true);
     return;
   }
@@ -342,7 +343,7 @@ function applySelfState(state) {
   won = state.won;
 
   if (gameOver) {
-    setMessage(won ? `Solved in ${state.guesses.length}/${ROWS}` : `Out of guesses! The word was ${answer}.`);
+    setMessage(won ? WIN_MESSAGES[state.guesses.length - 1] : `Out of guesses! The word was ${answer}.`);
   } else {
     setMessage('');
   }
